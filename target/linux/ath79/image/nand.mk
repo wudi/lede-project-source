@@ -32,7 +32,7 @@ endef
 
 define Build/zyxel-factory
 	let \
-		maxsize="$(subst k,* 1024,$(RAS_ROOTFS_SIZE))"; \
+		maxsize="$(call exp_units,$(RAS_ROOTFS_SIZE))"; \
 		let size="$$(stat -c%s $@)"; \
 		if [ $$size -lt $$maxsize ]; then \
 			$(STAGING_DIR_HOST)/bin/mkrasimage \
@@ -190,7 +190,8 @@ define Device/glinet_gl-e750
   SOC := qca9531
   DEVICE_VENDOR := GL.iNet
   DEVICE_MODEL := GL-E750
-  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca9887-ct kmod-usb2
+  DEVICE_PACKAGES := kmod-ath10k-ct ath10k-firmware-qca9887-ct kmod-usb2 \
+	kmod-usb-net-qmi-wwan kmod-usb-serial-option uqmi
   SUPPORTED_DEVICES += gl-e750
   KERNEL_SIZE := 4096k
   IMAGE_SIZE := 131072k
@@ -280,6 +281,12 @@ TARGET_DEVICES += glinet_gl-x1200-nor
 
 define Device/linksys_ea4500-v3
   SOC := qca9558
+  DEVICE_COMPAT_VERSION := 1.1
+  DEVICE_COMPAT_MESSAGE := Partition table has been changed. Please \
+	install kmod-mtd-rw and erase mtd8 (syscfg) before upgrade \
+	to keep configures, or forcibly flash factory image to mtd5 \
+	(firmware) partition with mtd tool to discard configures but \
+	claim additional space immediately.
   DEVICE_VENDOR := Linksys
   DEVICE_MODEL := EA4500
   DEVICE_VARIANT := v3
@@ -287,7 +294,7 @@ define Device/linksys_ea4500-v3
   BLOCKSIZE := 128k
   PAGESIZE := 2048
   KERNEL_SIZE := 4096k
-  IMAGE_SIZE := 81920k
+  IMAGE_SIZE := 128256k
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
   LINKSYS_HWNAME := EA4500V3
   IMAGES += factory.img
@@ -311,6 +318,7 @@ define Device/meraki_mr18
 # KERNEL_INITRAMFS := $$(KERNEL)
   KERNEL_INITRAMFS :=
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+  SUPPORTED_DEVICES += mr18
 endef
 TARGET_DEVICES += meraki_mr18
 
@@ -434,6 +442,10 @@ define Device/zte_mf28x_common
   DEVICE_PACKAGES := kmod-usb2 kmod-ath10k-ct
   BLOCKSIZE := 128k
   PAGESIZE := 2048
+  LOADER_TYPE := bin
+  LZMA_TEXT_START := 0x82800000
+  KERNEL := kernel-bin | append-dtb | lzma | loader-kernel | uImage none
+  KERNEL_INITRAMFS := $$(KERNEL)
   KERNEL_SIZE := 4096k
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
 endef
@@ -485,7 +497,7 @@ TARGET_DEVICES += zte_mf286r
 
 define Device/zyxel_nbg6716
   SOC := qca9558
-  DEVICE_VENDOR := ZyXEL
+  DEVICE_VENDOR := Zyxel
   DEVICE_MODEL := NBG6716
   DEVICE_PACKAGES := kmod-usb2 kmod-usb-ledtrig-usbport kmod-ath10k-ct \
 	ath10k-firmware-qca988x-ct
